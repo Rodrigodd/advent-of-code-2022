@@ -1,17 +1,32 @@
 const INPUT: &str = include_str!("../../inputs/day2.txt");
 
 fn main() {
-    let score = compute_score(INPUT);
-    println!("total score: {score}");
+    let plays = to_plays(INPUT);
+    let score = compute_score(plays);
+    println!("reasoned strategy: {score}");
+
+    let plays = to_plays(INPUT);
+    let plays = apply_strategy(plays);
+    let score = compute_score(plays);
+    println!("actual strategy: {score}");
 }
 
 #[test]
 fn example_given() {
     let input = "A Y\nB X\nC Z\n";
-    assert_eq!(15, compute_score(input));
+    let plays = to_plays(input);
+    assert_eq!(15, compute_score(plays));
 }
 
-fn compute_score(input: &str) -> u64 {
+#[test]
+fn actual_strategy() {
+    let input = "A Y\nB X\nC Z\n";
+    let plays = to_plays(input);
+    let plays = apply_strategy(plays);
+    assert_eq!(12, compute_score(plays));
+}
+
+fn to_plays(input: &str) -> impl Iterator<Item = (u8, u8)> + '_ {
     // the filter map is only filtering the last line, that is empty
     let plays = input.split('\n').filter_map(|x| {
         let mut s = x.split(' ');
@@ -20,6 +35,16 @@ fn compute_score(input: &str) -> u64 {
             s.next()?.bytes().next()? - b'X',
         ))
     });
+    plays
+}
+
+fn apply_strategy<'a>(
+    plays: impl Iterator<Item = (u8, u8)> + 'a,
+) -> impl Iterator<Item = (u8, u8)> + 'a {
+    plays.map(|(x, y)| (x, (x + y + 2) % 3))
+}
+
+fn compute_score(plays: impl Iterator<Item = (u8, u8)>) -> u64 {
     let mut score = 0;
     for play in plays {
         let move_score = match play.1 {
