@@ -3,8 +3,12 @@ const INPUT: &str = include_str!("../../inputs/day3.txt");
 fn main() {
     let input = INPUT;
     let rucksacks = to_rucksacks(input);
-    let sum: u64 = find_repeats(&rucksacks).map(|x| x as u64).sum();
-    println!("sum of priorities: {sum}");
+
+    let sum: u64 = find_wrong_items(&rucksacks).map(|x| x as u64).sum();
+    println!("sum of wrong items: {sum}");
+
+    let sum: u64 = find_badges(&rucksacks).map(|x| x as u64).sum();
+    println!("sum of badges: {sum}");
 }
 
 #[test]
@@ -26,8 +30,11 @@ CrZsJsPPZsGzwwsLwLmpwMDw
 ";
 
     let rucksacks = to_rucksacks(input);
-    let sum: u64 = find_repeats(&rucksacks).map(|x| x as u64).sum();
+    let sum: u64 = find_wrong_items(&rucksacks).map(|x| x as u64).sum();
     assert_eq!(157, sum);
+
+    let sum: u64 = find_badges(&rucksacks).map(|x| x as u64).sum();
+    assert_eq!(70, sum);
 }
 
 fn to_rucksacks(input: &str) -> Vec<Vec<u8>> {
@@ -59,7 +66,7 @@ fn to_rucksacks(input: &str) -> Vec<Vec<u8>> {
         .collect::<Vec<_>>()
 }
 
-fn find_repeats(rucksacks: &[Vec<u8>]) -> impl Iterator<Item = u8> + '_ {
+fn find_wrong_items(rucksacks: &[Vec<u8>]) -> impl Iterator<Item = u8> + '_ {
     rucksacks.iter().map(|rucksack| {
         let mut items = [false; 52];
         let l = rucksack.len();
@@ -72,5 +79,23 @@ fn find_repeats(rucksacks: &[Vec<u8>]) -> impl Iterator<Item = u8> + '_ {
             }
         }
         panic!("rucksack has no wrong item: '{rucksack:?}")
+    })
+}
+
+fn find_badges(rucksacks: &[Vec<u8>]) -> impl Iterator<Item = u8> + '_ {
+    // the rucksacks must ve divideble in groups of tree
+    assert!(rucksacks.len() % 3 == 0);
+    rucksacks.chunks_exact(3).map(|group| {
+        let mut items = [0u8; 52];
+        for (i, rucksack) in group.iter().enumerate() {
+            for item in rucksack {
+                items[*item as usize - 1] |= 1 << i;
+            }
+        }
+        items
+            .into_iter()
+            .position(|x| x == 0b111)
+            .expect("each group must have a badge") as u8
+            + 1
     })
 }
