@@ -11,9 +11,14 @@ struct Range {
 
 fn main() {
     let input = INPUT;
+
     let pairs = to_pairs(input);
     let count = count_fully_contained(pairs);
     println!("number of fully contained pairs: {count}");
+
+    let pairs = to_pairs(input);
+    let count = count_overlapping(pairs);
+    println!("number of contained pairs: {count}");
 }
 
 #[test]
@@ -28,6 +33,9 @@ fn example() {
     let pairs = to_pairs(input);
     let count = count_fully_contained(pairs);
     assert_eq!(2, count);
+    let pairs = to_pairs(input);
+    let count = count_overlapping(pairs);
+    assert_eq!(4, count);
 }
 
 fn to_pairs(
@@ -58,5 +66,13 @@ fn count_fully_contained(
             a.start <= b.start && a.end >= b.end
                 || b.start <= a.start && b.end >= a.end
         })
+        .count()
+}
+
+fn count_overlapping(
+    pairs: impl Iterator<Item = (Range, Range)>,
+) -> usize {
+    pairs
+        .filter(|(a, b)| a.start <= b.end && a.end >= b.start)
         .count()
 }
