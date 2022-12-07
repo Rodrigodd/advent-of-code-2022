@@ -7,6 +7,7 @@ fn main() {
         "sum is: {}",
         total_size_folders_less_than_100_000(&tree)
     );
+    println!("need to delete: {}", size_of_folder_to_delete(&tree));
 }
 
 #[test]
@@ -38,6 +39,7 @@ $ ls
     let tree = build_tree(input);
     dbg!(&tree);
     assert_eq!(95437, total_size_folders_less_than_100_000(&tree));
+    assert_eq!(24933642, size_of_folder_to_delete(&tree));
 }
 
 #[derive(Debug)]
@@ -158,4 +160,22 @@ fn total_size_folders_less_than_100_000(tree: &Vec<Node>) -> u64 {
         }
     }
     sum
+}
+
+fn size_of_folder_to_delete(tree: &Vec<Node>) -> u64 {
+    let used_size = size_of(tree, 0);
+    let free_size = 70_000_000 - used_size;
+    let need_to_delete = 30_000_000u64.wrapping_sub(free_size);
+    let mut min_size = u64::MAX;
+    let mut parents = vec![0];
+    while let Some(curr) = parents.pop() {
+        if let Node::Folder { nodes, .. } = &tree[curr] {
+            let size = size_of(tree, curr);
+            if size >= need_to_delete && size < min_size {
+                min_size = size;
+            }
+            parents.extend_from_slice(nodes);
+        }
+    }
+    min_size
 }
