@@ -3,7 +3,7 @@ const INPUT: &str = include_str!("../../inputs/day8.txt");
 fn main() {
     let input = INPUT;
     let trees = to_height_grid(input);
-    let visibles = visibility_grid(trees);
+    let visibles = visibility_grid(&trees);
     println!(
         "number of visible tree: {}",
         visibles
@@ -12,7 +12,13 @@ fn main() {
             .copied()
             .map(|x| x as u64)
             .sum::<u64>()
-    )
+    );
+
+    let scores = scenic_scores(&trees);
+    println!(
+        "max scenic score: {}",
+        scores.values.iter().copied().max().unwrap()
+    );
 }
 
 #[test]
@@ -24,7 +30,7 @@ fn example() {
 35390
 ";
     let trees = to_height_grid(input);
-    let visibles = visibility_grid(trees);
+    let visibles = visibility_grid(&trees);
     assert_eq!(
         21,
         visibles
@@ -33,7 +39,9 @@ fn example() {
             .copied()
             .map(|x| x as u64)
             .sum::<u64>()
-    )
+    );
+    let scores = scenic_scores(&trees);
+    assert_eq!(8, scores.values.iter().copied().max().unwrap())
 }
 
 struct Grid<T: Copy> {
@@ -60,11 +68,11 @@ fn to_height_grid(input: &str) -> Grid<u8> {
     }
 }
 
-fn visibility_grid(trees: Grid<u8>) -> Grid<bool> {
+fn visibility_grid(trees: &Grid<u8>) -> Grid<bool> {
     let w = trees.width;
     let h = trees.height;
-    let mut visibility = vec![false; trees.values.len()];
-    let trees = trees.values;
+    let trees = &trees.values;
+    let mut visibility = vec![false; trees.len()];
 
     // border is always visible
     for j in 0..w {
@@ -120,5 +128,52 @@ fn visibility_grid(trees: Grid<u8>) -> Grid<bool> {
         width: w,
         height: h,
         values: visibility,
+    }
+}
+
+fn scenic_scores(trees: &Grid<u8>) -> Grid<u32> {
+    let w = trees.width;
+    let h = trees.height;
+    let trees = &trees.values;
+    let mut scores = vec![0; trees.len()];
+
+    for i in 1..h - 1 {
+        for j in 1..w - 1 {
+            let viewing_to = |di: isize, dj: isize| {
+                let mut dist = 0;
+                let curr_height = trees[i * w + j];
+                let mut i = i as isize;
+                let mut j = j as isize;
+                loop {
+                    i += di;
+                    j += dj;
+                    if i < 0
+                        || i >= h as isize
+                        || j < 0
+                        || j >= w as isize
+                    {
+                        break;
+                    }
+
+                    dist += 1;
+                    let height = trees[i as usize * w + j as usize];
+                    if height >= curr_height {
+                        break;
+                    }
+                }
+                dist
+            };
+
+            scores[i * w + j] = viewing_to(0, 1)
+                * viewing_to(1, 0)
+                * viewing_to(0, -1)
+                * viewing_to(-1, 0);
+        }
+    }
+
+    Grid {
+        width: w,
+        height: h,
+        values: scores,
     }
 }
