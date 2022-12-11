@@ -2,14 +2,24 @@ const INPUT: &str = include_str!("../../inputs/day9.txt");
 
 fn main() {
     let input = INPUT;
+
     let steps = to_steps(input);
-    let positions = simulate(steps);
+    let positions = simulate(steps, 2);
     let count = positions
         .iter()
-        .map(|x| x.tail)
+        .map(|x| *x.knots.last().unwrap())
         .collect::<std::collections::BTreeSet<_>>()
         .len();
-    println!("unique positions of tail: {count}");
+    println!("unique positions of tail of 2-rope: {count}");
+
+    let steps = to_steps(input);
+    let positions = simulate(steps, 10);
+    let count = positions
+        .iter()
+        .map(|x| *x.knots.last().unwrap())
+        .collect::<std::collections::BTreeSet<_>>()
+        .len();
+    println!("unique positions of tail of 10-rope: {count}");
 }
 
 #[test]
@@ -24,29 +34,52 @@ L 5
 R 2
 ";
     let steps = to_steps(input);
-    let positions = simulate(steps);
+    let positions = simulate(steps, 2);
     let count = positions
         .iter()
-        .map(|x| x.tail)
+        .map(|x| *x.knots.last().unwrap())
         .collect::<std::collections::BTreeSet<_>>()
         .len();
     assert_eq!(13, count);
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-struct Rope {
-    head: Pos,
-    tail: Pos,
-}
-impl Rope {
-    fn len(&self) -> i32 {
-        let dx = (self.head.x - self.tail.x).abs();
-        let dy = (self.head.y - self.tail.y).abs();
-        dx.max(dy)
+#[test]
+fn example2() {
+    let input = "R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20
+";
+    let steps = to_steps(input);
+    let positions = simulate(steps, 10);
+    let mut tail = positions
+        .iter()
+        .map(|x| (x.knots[0], x.knots[1], x.knots[2]))
+        .collect::<Vec<_>>();
+    tail.dedup();
+    for (i, x) in tail.iter().enumerate() {
+        println!("{i:2}: {:?}", x);
     }
+    let collect = positions
+        .iter()
+        .map(|x| *x.knots.last().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    let count = collect.len();
+    assert_eq!(36, count);
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+struct Rope {
+    knots: Vec<Pos>,
+}
+
+#[derive(
+    Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug,
+)]
 struct Pos {
     x: i32,
     y: i32,
@@ -56,26 +89,35 @@ fn pos(x: i32, y: i32) -> Pos {
     Pos { x, y }
 }
 
-fn simulate(steps: Vec<Step>) -> Vec<Rope> {
+fn simulate(steps: Vec<Step>, knots: usize) -> Vec<Rope> {
     let mut positions = Vec::new();
+    if knots < 1 {
+        unimplemented!();
+    }
     positions.push(Rope {
-        head: pos(0, 0),
-        tail: pos(0, 0),
+        knots: vec![pos(0, 0); knots],
     });
     for step in steps {
         for _ in 0..step.count {
             let curr = positions.last().unwrap();
-            let mut next = *curr;
+            let mut next = curr.clone();
 
             match step.direction {
-                0 => next.head.x += 1,
-                1 => next.head.y += 1,
-                2 => next.head.x -= 1,
-                3 => next.head.y -= 1,
+                0 => next.knots[0].x += 1,
+                1 => next.knots[0].y += 1,
+                2 => next.knots[0].x -= 1,
+                3 => next.knots[0].y -= 1,
                 dir => panic!("unkown direction {dir}"),
             }
-            if next.len() > 1 {
-                next.tail = curr.head;
+            for i in 1..knots {
+                let a = next.knots[i];
+                let b = next.knots[i - 1];
+                let dx = b.x - a.x;
+                let dy = b.y - a.y;
+                if dx.abs() > 1 || dy.abs() > 1 {
+                    next.knots[i].x += dx.signum();
+                    next.knots[i].y += dy.signum();
+                }
             }
             positions.push(next);
         }
