@@ -13,12 +13,18 @@ fn main() {
         }
     }
     println!("strength sums are: {}", strenght);
+
+    let instructions = to_instructions(input);
+    let program = Program::default();
+    let screen = program.render(instructions);
+    println!("screen:");
+    println!("{}", std::str::from_utf8(&screen).unwrap());
 }
 
 #[test]
 fn example() {
-    let input = 
-"addx 15\naddx -11\naddx 6\naddx -3\naddx 5\naddx -1\naddx -8\naddx 13
+    let input = "\
+addx 15\naddx -11\naddx 6\naddx -3\naddx 5\naddx -1\naddx -8\naddx 13
 addx 4\nnoop\naddx -1\naddx 5\naddx -1\naddx 5\naddx -1\naddx 5
 addx -1\naddx 5\naddx -1\naddx -35\naddx 1\naddx 24\naddx -19\naddx 1
 addx 16\naddx -11\nnoop\nnoop\naddx 21\naddx -15\nnoop\nnoop
@@ -48,7 +54,19 @@ noop\nnoop";
             println!("{}", program.x)
         }
     }
-    assert_eq!(13140, strenght)
+    assert_eq!(13140, strenght);
+
+    let instructions = to_instructions(input);
+    let program = Program::default();
+    let screen = program.render(instructions);
+    let expected = "##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######.....
+";
+    assert_eq!(expected, std::str::from_utf8(&screen).unwrap());
 }
 
 struct Program {
@@ -62,6 +80,31 @@ impl Default for Program {
     }
 }
 impl Program {
+    fn render(mut self, instructions: Vec<Instruction>) -> Vec<u8> {
+        let mut screen = vec![b'\n'; 41 * 6];
+        let mut x = 0usize;
+        let mut y = 0usize;
+        for instr in instructions {
+            let c =
+                if x as i32 >= self.x - 1 && x as i32 <= self.x + 1 {
+                    b'#'
+                } else {
+                    b'.'
+                };
+            screen[y * 41 + x] = c;
+            self.do_step(instr);
+            x += 1;
+            if x == 40 {
+                x = 0;
+                y += 1;
+                if y == 6 {
+                    y = 0;
+                }
+            }
+        }
+        screen
+    }
+
     fn do_step(&mut self, instruction: Instruction) {
         match instruction {
             Instruction::AddX(dx) => {
